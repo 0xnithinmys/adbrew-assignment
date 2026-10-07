@@ -1,5 +1,11 @@
 # set base image (host OS)
-FROM python:3.8
+# Pinned to Debian 11 (bullseye): the plain python:3.8 tag now uses Debian 12,
+# which no longer ships libssl1.1, and MongoDB 4.4 cannot install without it.
+FROM python:3.8-bullseye
+
+# Bullseye's security repository is being retired, so its packages return 404.
+# The main bullseye repository is still available and is enough for local dev.
+RUN sed -i '/bullseye-security/d' /etc/apt/sources.list
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
@@ -20,9 +26,9 @@ RUN apt-get install -y mongodb-org
 # Install Yarn
 RUN apt-get install -y yarn
 
-# Install PIP
-RUN easy_install pip
-
+# pip: the image's bundled pip 23 is kept on purpose. pip >= 24.1 rejects
+# celery 5.0.5's metadata ("pytz (>dev)"), so `pip install --upgrade pip`
+# (and the removed `easy_install pip`) would break the requirements install.
 
 ENV ENV_TYPE staging
 ENV MONGO_HOST mongo
