@@ -1,28 +1,40 @@
 import './App.css';
-import logo from './logo.svg';
-
+import { ErrorBanner } from './components/ErrorBanner';
+import { TodoForm } from './components/TodoForm';
+import { TodoList } from './components/TodoList';
+import { useTodos } from './hooks/useTodos';
 
 export function App() {
+  const { todos, isLoading, error, pendingIds, refresh, addTodo, toggleTodo, deleteTodo } = useTodos();
+  const openCount = todos.filter((todo) => !todo.completed).length;
+  const showList = !(error && todos.length === 0);
+
   return (
-    <div className="App">
-      <div>
-        <h1>List of TODOs</h1>
-        <li>Learn Docker</li>
-        <li>Learn React</li>
-      </div>
-      <div>
-        <h1>Create a ToDo</h1>
-        <form>
-          <div>
-            <label for="todo">ToDo: </label>
-            <input type="text" />
-          </div>
-          <div style={{"marginTop": "5px"}}>
-            <button>Add ToDo!</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <main className="app">
+      <section className="card" aria-labelledby="todo-list-heading">
+        <header className="card__header">
+          <h1 id="todo-list-heading">List of TODOs</h1>
+          {!isLoading && todos.length > 0 && (
+            <span className="badge">{openCount} of {todos.length} open</span>
+          )}
+        </header>
+        {error && <ErrorBanner message={error} onRetry={() => refresh()} />}
+        {showList && (
+          <TodoList
+            todos={todos}
+            isLoading={isLoading}
+            pendingIds={pendingIds}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+          />
+        )}
+      </section>
+
+      <section className="card" aria-labelledby="todo-form-heading">
+        <h2 id="todo-form-heading">Create a ToDo</h2>
+        <TodoForm onCreate={addTodo} />
+      </section>
+    </main>
   );
 }
 

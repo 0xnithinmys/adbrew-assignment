@@ -1,38 +1,235 @@
-.App {
+:root {
+  --color-bg: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-border: #e2e4e9;
+  --color-text: #1f2328;
+  --color-muted: #6b7280;
+  --color-primary: #3b5bdb;
+  --color-primary-hover: #2f4ac0;
+  --color-danger: #c92a2a;
+  --color-danger-bg: #fff5f5;
+  --radius: 10px;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 16px;
+  display: grid;
+  gap: 24px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.card h1,
+.card h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+#todo-form-heading {
+  margin-bottom: 16px;
+}
+
+.badge {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  background: var(--color-bg);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+/* Buttons */
+.button {
+  font: inherit;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.button--primary {
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.button--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.button--ghost {
+  background: transparent;
+  color: var(--color-muted);
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.button--ghost:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.button:focus-visible,
+.todo-form__input:focus-visible,
+.todo-item__checkbox:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* List */
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.todo-item:first-child {
+  border-top: none;
+}
+
+.todo-item--pending {
+  opacity: 0.5;
+}
+
+.todo-item__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.todo-item__checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.todo-item__text {
+  overflow-wrap: anywhere;
+}
+
+.todo-item--done .todo-item__text {
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.todo-item__date {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.todo-status {
+  margin: 0;
+  padding: 16px 0;
+  color: var(--color-muted);
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+/* Form */
+.todo-form__label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.todo-form__row {
   display: flex;
-  flex-direction: column;
+  gap: 8px;
+}
+
+.todo-form__input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.todo-form__input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.todo-form__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 0.8rem;
+}
+
+.todo-form__error {
+  margin: 0;
+  color: var(--color-danger);
+}
+
+.todo-form__counter {
+  margin-left: auto;
+  color: var(--color-muted);
+}
+
+/* Errors */
+.error-banner {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 0.9rem;
 }
 
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+@media (max-width: 480px) {
+  .todo-form__row {
+    flex-direction: column;
   }
-  to {
-    transform: rotate(360deg);
+
+  .todo-item__date {
+    display: none;
   }
 }
