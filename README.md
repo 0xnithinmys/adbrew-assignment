@@ -1,3 +1,113 @@
+# Solution
+
+A todo app: React (hooks) → Django REST API → MongoDB, all running in Docker. The original task description is preserved [below](#adbrew-test).
+
+## Run it
+
+```bash
+cp .env.example .env        # then set ADBREW_CODEBASE_PATH to the absolute path of ./src
+docker-compose build
+docker-compose up -d
+```
+
+- App: http://localhost:3000 (the first start runs `yarn install` and takes a few minutes; `docker logs -f app` shows progress)
+- API: http://localhost:8000/todos/
+
+## What it does
+
+- The list is loaded from MongoDB (`GET /todos/`).
+- Submitting the form creates a todo (`POST /todos/`) and then re-fetches the list from MongoDB.
+- Beyond the brief: mark a todo done (`PATCH /todos/<id>/`) and delete it (`DELETE /todos/<id>/`).
+- Validation on both sides, loading and empty states, per-row pending state, a retry banner when the API is unreachable, and accessible labels and alerts.
+
+## API
+
+| Method | Path | Body | Success | Errors |
+|---|---|---|---|---|
+| GET | `/todos/` | | `200` list, newest first | `503` |
+| POST | `/todos/` | `{"description": "..."}` | `201` created todo | `400`, `503` |
+| PATCH | `/todos/<id>/` | `{"completed": true}` and/or `{"description": "..."}` | `200` updated todo | `400`, `404`, `503` |
+| DELETE | `/todos/<id>/` | | `204` | `404`, `503` |
+
+A todo is `{"id", "description", "completed", "created_at"}`. Every error has the same shape:
+
+```json
+{"error": {"code": "validation_error", "message": "'description' must not be empty.", "details": {"field": "description"}}}
+```
+
+Descriptions are trimmed and must be 1 to 200 characters. Note the trailing slash: `/todos` without it redirects (301).
+
+## Architecture
+
+### Backend: `src/rest/todos/`
+
+```
+request → views.py → services.py → repository.py → MongoDB
+          (HTTP)     (rules)        (storage)
+```
+
+| File | Responsibility |
+|---|---|
+| `views.py` | Converts HTTP to service calls and back. No business logic, no database access. |
+| `services.py` | Use cases: validate, persist, raise `TodoNotFoundError`. Depends on the repository *interface*. |
+| `repository.py` | `TodoRepository` (abstract contract) and `MongoTodoRepository` (the only code that imports pymongo). Maps `ObjectId` to string and driver errors to `StorageError`. |
+| `validators.py` | Pure input validation. |
+| `domain.py` | The `Todo` dataclass, independent of HTTP and storage. |
+| `exceptions.py` / `exception_handler.py` | Domain errors, mapped to HTTP status codes and a consistent JSON shape in one place. |
+| `dependencies.py` | Composition root: builds one `MongoClient` (thread-safe and pooled) and wires the service once per process. |
+
+Design patterns and principles:
+
+- **Repository pattern.** Storage sits behind an interface. Tests swap in `InMemoryTodoRepository`, and changing the database touches only one class.
+- **Service layer.** Business rules live in one place, separate from HTTP.
+- **Dependency injection.** The service receives its repository, and views receive the service (`as_view(service_factory=...)`), so each layer can be tested in isolation.
+- **SOLID.** Single responsibility per module. Dependency inversion, because the service depends on the abstract `TodoRepository`. Open/closed, because a new storage backend means a new class, not edits.
+- **Centralized error handling.** A custom DRF `EXCEPTION_HANDLER` gives every error the same response shape, and unexpected errors are logged but never leaked to the client.
+
+As required, there are no Django models, serializers or SQLite: all data is stored in MongoDB through the existing `MONGO_HOST`/`MONGO_PORT` configuration.
+
+### Frontend: `src/app/src/`
+
+| File | Responsibility |
+|---|---|
+| `api/httpClient.js` | `fetch` wrapper. Sends and parses JSON, and turns network failures and API errors into a single `ApiError`. |
+| `api/todoApi.js` | Every todo endpoint in one module. |
+| `hooks/useTodos.js` | A custom hook holding the todo state and actions. It re-fetches after every change, so the UI always matches MongoDB. It aborts the first load on unmount. |
+| `components/` | Presentational components (`TodoForm`, `TodoList`, `TodoItem`, `ErrorBanner`) that receive data and callbacks through props. |
+| `validation.js`, `config.js` | Client-side validation (the backend still validates everything) and configuration. |
+
+Function components and hooks only (`useState`, `useEffect`, `useCallback`, `useRef`), with no class components or lifecycle methods. Logic lives in a **custom hook**, the UI in **presentational components**, and HTTP in an **API module**.
+
+## Tests
+
+```bash
+docker exec api bash -c "cd /src/rest && python manage.py test todos"                 # 24 tests
+docker exec app bash -c "cd /src/app && CI=true yarn test --watchAll=false"           # 6 tests
+```
+
+- Backend: validators, service (with the in-memory repository), views (status codes and error shapes, including 503 and 500), and integration tests against the real Mongo container in a throwaway database. These are skipped if Mongo is down.
+- Frontend: the user flows (load, create then refresh, validation, server errors, retry, toggle and delete) with the API module mocked.
+
+## Changes to the Docker setup
+
+The original image no longer builds, because the base image and package mirrors have moved on since the test was written. The fixes are minimal and commented in the `Dockerfile`:
+
+1. **`FROM python:3.8` → `python:3.8-bullseye`.** The unpinned tag now resolves to Debian 12, which lacks `libssl1.1`, a dependency of MongoDB 4.4.
+2. **Removed the `bullseye-security` apt source.** Debian is retiring it, so its packages return 404.
+3. **Removed `easy_install pip`.** `easy_install` no longer exists. The bundled pip 23 is kept deliberately, because pip 24.1 and later rejects `celery==5.0.5`'s malformed metadata.
+4. **`CHOKIDAR_USEPOLLING=true` on the `app` service** (`docker-compose.yml`). File-change events don't cross Docker Desktop's Windows/macOS bind mounts, so without it React never hot-reloads.
+
+Also added: `.gitignore` (Mongo data in `src/db`, `.env`, caches) and `.env.example`.
+
+## With more time
+
+- Pagination for `GET /todos/` and an index on `created_at`.
+- Upgrade the stack (supported Python, MongoDB and Debian) instead of pinning end-of-life versions.
+- Restrict CORS to known origins and move `SECRET_KEY`/`DEBUG` to environment variables for production.
+- Optimistic UI updates with rollback, for snappier toggles.
+
+---
+
 # NOTE: DO NOT FORK THIS REPOSITORY. CLONE AND SETUP A STANDALONE REPOSITORY.
 
 # Adbrew Test!
