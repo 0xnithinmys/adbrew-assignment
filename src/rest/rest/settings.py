@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders'
+    'corsheaders',
+    'todos',
 ]
 
 MIDDLEWARE = [
@@ -125,9 +126,31 @@ STATIC_URL = '/static/'
 
 
 REST_FRAMEWORK = {
-    # other settings...
     'DEFAULT_AUTHENTICATION_CLASSES': [],
     'DEFAULT_PERMISSION_CLASSES': [],
+    'EXCEPTION_HANDLER': 'todos.exception_handler.api_exception_handler',
+}
+
+
+# MongoDB (values come from the Docker image's ENV, see Dockerfile)
+MONGO_HOST = os.environ.get('MONGO_HOST', 'localhost')
+MONGO_PORT = int(os.environ.get('MONGO_PORT', '27017'))
+MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'test_db')
+MONGO_TIMEOUT_MS = int(os.environ.get('MONGO_TIMEOUT_MS', '3000'))
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {'format': '%(asctime)s %(levelname)s %(name)s: %(message)s'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'simple'},
+    },
+    'loggers': {
+        'todos': {'handlers': ['console'], 'level': 'INFO'},
+    },
 }
 
 
